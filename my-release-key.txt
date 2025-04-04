@@ -1,0 +1,3 @@
+Key store password: rajosian
+key alias: myapp
+key password: rajosian
