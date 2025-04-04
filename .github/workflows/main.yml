@@ -1,39 +1,54 @@
-name: Android CI
+name: Deploy
 
 on:
   push:
     branches:
-      - main  # Change this to your default branch if needed
-  pull_request:
-    branches:
-      - main
+      - master
+      
+env:
+  CI: false
 
 jobs:
   build:
-    name: Build APK
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v2
 
-      - name: Setup JDK
-        uses: actions/setup-java@v3
+      - name: Setup Node
+        uses: actions/setup-node@v1
         with:
-          distribution: 'temurin'
-          java-version: '17'  # Change based on your project requirement
+          node-version: 16
 
-      - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
 
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew
+      - name: Build project
+        run: npm run build
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK as Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload production-ready build files
+        uses: actions/upload-artifact@v2
         with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: production-files
+          path: ./build
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: production-files
+          path: ./build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.TOKEN }}
+          publish_dir: ./build
